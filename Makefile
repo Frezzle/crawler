@@ -1,5 +1,13 @@
 .PHONY: all
-all: flowchart
+all: build
+
+.PHONY: build
+build:
+	go build -o build/app
+
+.PHONY: run
+run: build
+	./build/app
 
 .PHONY: flowchart
 flowchart:
