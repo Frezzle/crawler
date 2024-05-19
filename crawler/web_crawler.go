@@ -87,6 +87,7 @@ Loop:
 			// 	log.Println("token text:", string(text))
 		}
 	}
+	// TODO try html.Parse instead^ ?
 
 	links := make([]string, len(uniqueLinks))
 	i := 0

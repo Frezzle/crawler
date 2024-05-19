@@ -126,27 +126,36 @@ func main() {
 		}
 	}
 
-	// output mermaid graph to a file
-	file, err := os.OpenFile("flowchart.mermaid", os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0644)
+	err := saveMermaidFlowchart(urlConnections, "flowchart.mermaid")
 	if err != nil {
-		log.Fatalf("unable to open or create file for mermaid graph: %s\n", err)
+		log.Fatalln(fmt.Errorf("failed to save mermaid graph: %w", err))
+	}
+}
+
+// Outputs many URL->URL "connections" to a mermaid flowchart file,
+// which can be rendered to an image e.g. using mermaid.js, mermaid CLI, mermaid.live.
+func saveMermaidFlowchart(connections [][2]string, filename string) error {
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0644)
+	if err != nil {
+		return fmt.Errorf("unable to open or create file for mermaid graph: %w", err)
 	}
 	_, err = file.WriteString("flowchart LR\n")
 	if err != nil {
-		log.Fatalf("unable to write header to mermaid file: %s\n", err)
+		return fmt.Errorf("unable to write header to mermaid file: %w", err)
 	}
-	for _, conn := range urlConnections {
+	for _, conn := range connections {
 		_, err = file.WriteString(fmt.Sprintf(
 			"%s[%s]-->%s[%s]\n",
 			truncate(hash(conn[0]), 10), // truncate to stay below char limit on mermaid.live
 			truncateUrl(conn[0], 150),
 			truncate(hash(conn[1]), 10), // truncate to stay below char limit on mermaid.live
 			truncateUrl(conn[1], 150),
+			// TODO: don't truncate now that i know how to increase char limit on mermaid.live / am using mermaid cli ?
 		))
 		if err != nil {
-			log.Fatalf("unable to write url connection to mermaid file: %s\n", err)
+			return fmt.Errorf("unable to write url connection to mermaid file: %w", err)
 		}
 	}
 
-	// TODO try html.Parse
+	return nil
 }
