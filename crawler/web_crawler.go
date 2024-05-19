@@ -23,9 +23,12 @@ func NewWebCrawler(fetcher fetcher.Fetcher) *WebCrawler {
 
 // Crawl retrieves all unique anchor links in the web page specified by the URL.
 // Links to the same URL specified (i.e. links to self) are ignored, though the check is simple so some may slip by.
+// All URLs are normalised.
 // Returns an error if the page is not HTML content.
 // May return error for other reasons, e.g. failing to fetch the page.
 func (wc *WebCrawler) Crawl(pageUrl string) ([]string, error) {
+	pageUrl = normaliseUrl(pageUrl)
+
 	body, err := wc.fetcher.Fetch(pageUrl)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch page: %s", err)
@@ -70,11 +73,13 @@ Loop:
 					return nil, fmt.Errorf("failed to parse absolute url: %w", err)
 				}
 
-				if hrefAbsolute.String() == pageUrl {
+				url := normaliseUrl(hrefAbsolute.String())
+
+				if url == pageUrl {
 					continue // skip absolute link to itself
 				}
 
-				uniqueLinks[hrefAbsolute.String()] = struct{}{}
+				uniqueLinks[url] = struct{}{}
 				// log.Println("absolute href:", hrefAbsolute)
 			}
 			// case html.TextToken, html.DoctypeToken, html.CommentToken:
@@ -94,4 +99,20 @@ Loop:
 	slices.Sort(links)
 
 	return links, nil
+}
+
+// Very basic normalisation of URL so we don't have duplicates of same page.
+// For now it simply removes a trailing slash if appears at the end,
+// however this won't work in many cases...
+//
+// - bla.com/?q=hello will not become bla.com?q=hello
+//
+// - bla.com/#title will not become bla.com#title
+//
+// - bla.com// will not become bla.com
+//
+// ...it's fine for now, hopefully.
+func normaliseUrl(url string) string {
+	s, _ := strings.CutSuffix(url, "/")
+	return s
 }

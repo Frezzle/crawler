@@ -13,7 +13,6 @@ import (
 )
 
 // possible TODOs:
-// - fix: why does ogteam.dev not link to frederico.dev in flowchart? IT DOES, one just has extra slash at the end; fix this e.g. by normalising URLs
 // - include seed URLs in diagram even if they don't link to anywhere else
 // - optimise mermaid file output by not repeating the name of same web pages; if nodes can be defined separately from connections then we get the above^ TODO for free!
 // - concurrent crawling for better performance
