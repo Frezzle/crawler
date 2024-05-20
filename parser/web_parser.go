@@ -7,18 +7,17 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/frezzle/web-crawler/fetcher"
+	"github.com/frezzle/web-crawler/utils"
 	"golang.org/x/net/html"
 )
 
 // WebParser can parse a HTML document to find more URLs that it links to.
 // Single-page apps (SPAs) are not supported... would be cool to do later!
 type WebParser struct {
-	fetcher fetcher.Fetcher
 }
 
-func NewWebParser(fetcher fetcher.Fetcher) *WebParser {
-	return &WebParser{fetcher}
+func NewWebParser() *WebParser {
+	return &WebParser{}
 }
 
 // Parse retrieves all unique anchor links in the web page specified by the URL.
@@ -26,13 +25,8 @@ func NewWebParser(fetcher fetcher.Fetcher) *WebParser {
 // All URLs are normalised.
 // Returns an error if the page is not HTML content.
 // May return error for other reasons, e.g. failing to fetch the page.
-func (wc *WebParser) Parse(pageUrl string) ([]string, error) {
-	pageUrl = normaliseUrl(pageUrl)
-
-	body, err := wc.fetcher.Fetch(pageUrl)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch page: %s", err)
-	}
+func (wc *WebParser) Parse(body []byte, pageUrl string) ([]string, error) {
+	pageUrl = utils.NormaliseUrl(pageUrl)
 
 	baseUrl, err := url.Parse(pageUrl)
 	if err != nil {
@@ -73,7 +67,7 @@ Loop:
 					return nil, fmt.Errorf("failed to parse absolute url: %w", err)
 				}
 
-				url := normaliseUrl(hrefAbsolute.String())
+				url := utils.NormaliseUrl(hrefAbsolute.String())
 
 				if url == pageUrl {
 					continue // skip absolute link to itself
@@ -97,23 +91,8 @@ Loop:
 	}
 
 	// sort it to make results deterministic (assuming web page content stays the same!)
+	// TODO: could be an option of the crawler? i.e. move this sorting out of the parser
 	slices.Sort(links)
 
 	return links, nil
-}
-
-// Very basic normalisation of URL so we don't have duplicates of same page.
-// For now it simply removes a trailing slash if appears at the end,
-// however this won't work in many cases...
-//
-// - bla.com/?q=hello will not become bla.com?q=hello
-//
-// - bla.com/#title will not become bla.com#title
-//
-// - bla.com// will not become bla.com
-//
-// ...it's fine for now, hopefully.
-func normaliseUrl(url string) string {
-	s, _ := strings.CutSuffix(url, "/")
-	return s
 }
