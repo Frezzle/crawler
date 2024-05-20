@@ -57,8 +57,6 @@ func (wc *Crawler) Crawl(seedLocations []string, crawlLimit int) ([][2]string, e
 	locationsToCrawl := make([]string, len(seedLocations))
 	copy(locationsToCrawl, seedLocations)
 	crawledLocations := make(map[string]bool)
-	f := fetcher.NewWebFetcher()
-	p := parser.NewWebParser()
 	locationLinks := make([][2]string, 0, 1000)
 
 	for len(locationsToCrawl) > 0 && len(crawledLocations) < crawlLimit {
@@ -80,14 +78,14 @@ func (wc *Crawler) Crawl(seedLocations []string, crawlLimit int) ([][2]string, e
 		crawledLocations[loc] = true
 
 		// fetch it
-		content, err := f.Fetch(loc)
+		content, err := wc.fetcher.Fetch(loc)
 		if err != nil {
 			log.Println(fmt.Errorf("failed to fetch content from location %s: %w", loc, err))
 			continue
 		}
 
 		// parse it
-		locs, err := p.Parse(content, loc)
+		locs, err := wc.parser.Parse(content, loc)
 		if err != nil {
 			log.Println(fmt.Errorf("failed to parse content from location %s: %w", loc, err))
 			continue
