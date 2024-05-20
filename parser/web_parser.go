@@ -1,4 +1,4 @@
-package crawler
+package parser
 
 import (
 	"bytes"
@@ -11,22 +11,22 @@ import (
 	"golang.org/x/net/html"
 )
 
-// WebCrawler represents one crawler that can Crawl a URL to find more URLs that it links to.
+// WebParser can parse a HTML document to find more URLs that it links to.
 // Single-page apps (SPAs) are not supported... would be cool to do later!
-type WebCrawler struct {
+type WebParser struct {
 	fetcher fetcher.Fetcher
 }
 
-func NewWebCrawler(fetcher fetcher.Fetcher) *WebCrawler {
-	return &WebCrawler{fetcher}
+func NewWebParser(fetcher fetcher.Fetcher) *WebParser {
+	return &WebParser{fetcher}
 }
 
-// Crawl retrieves all unique anchor links in the web page specified by the URL.
+// Parse retrieves all unique anchor links in the web page specified by the URL.
 // Links to the same URL specified (i.e. links to self) are ignored, though the check is simple so some may slip by.
 // All URLs are normalised.
 // Returns an error if the page is not HTML content.
 // May return error for other reasons, e.g. failing to fetch the page.
-func (wc *WebCrawler) Crawl(pageUrl string) ([]string, error) {
+func (wc *WebParser) Parse(pageUrl string) ([]string, error) {
 	pageUrl = normaliseUrl(pageUrl)
 
 	body, err := wc.fetcher.Fetch(pageUrl)

@@ -8,8 +8,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/frezzle/web-crawler/crawler"
 	"github.com/frezzle/web-crawler/fetcher"
+	"github.com/frezzle/web-crawler/parser"
 )
 
 // possible TODOs:
@@ -81,7 +81,7 @@ func main() {
 	}
 	crawledUrls := make(map[string]bool)
 	f := fetcher.NewWebFetcher()
-	c := crawler.NewWebCrawler(f)
+	p := parser.NewWebParser(f)
 	urlConnections := make([][2]string, 0, 1000)
 
 	for len(urlsToCrawl) > 0 && len(crawledUrls) < crawlLimit {
@@ -101,7 +101,7 @@ func main() {
 		// record it as crawled
 		crawledUrls[url] = true
 		// crawl it
-		urls, err := c.Crawl(url)
+		urls, err := p.Parse(url)
 		if err != nil {
 			log.Printf("failed to crawl %s: %s\n", url, fmt.Errorf("%w", err))
 		}
