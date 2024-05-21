@@ -1,4 +1,4 @@
-module github.com/frezzle/web-crawler
+module github.com/frezzle/crawler
 
 go 1.22
 

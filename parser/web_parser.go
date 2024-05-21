@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/frezzle/web-crawler/utils"
+	"github.com/frezzle/crawler/utils"
 	"golang.org/x/net/html"
 )
 

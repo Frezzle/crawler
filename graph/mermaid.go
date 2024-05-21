@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/frezzle/web-crawler/utils"
+	"github.com/frezzle/crawler/utils"
 )
 
 // Outputs many URL->URL "connections" to a mermaid flowchart file,

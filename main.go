@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/frezzle/web-crawler/crawler"
-	"github.com/frezzle/web-crawler/graph"
+	"github.com/frezzle/crawler/crawler"
+	"github.com/frezzle/crawler/graph"
 )
 
 func main() {

@@ -1,8 +1,8 @@
 package crawler
 
 import (
-	"github.com/frezzle/web-crawler/fetcher"
-	"github.com/frezzle/web-crawler/parser"
+	"github.com/frezzle/crawler/fetcher"
+	"github.com/frezzle/crawler/parser"
 )
 
 // NewWebCrawler creates a crawler that fetches web pages and parses their HTML content.

@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/frezzle/web-crawler/fetcher"
-	"github.com/frezzle/web-crawler/parser"
+	"github.com/frezzle/crawler/fetcher"
+	"github.com/frezzle/crawler/parser"
 )
 
 type Crawler struct {
