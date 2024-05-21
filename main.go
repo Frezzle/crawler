@@ -16,6 +16,7 @@ func main() {
 		"hollowknight.com",
 		"linkedin.com",
 		"mercadolibre.com.ar",
+		"twitter.com",
 		"uptimerobot.com",
 		"wikipedia.org",
 		"youtube.com",
