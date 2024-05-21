@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/frezzle/web-crawler/fetcher"
 	"github.com/frezzle/web-crawler/parser"
@@ -54,53 +56,109 @@ func (wc *Crawler) Crawl(seedLocations []string, crawlLimit int) ([][2]string, e
 		return nil, fmt.Errorf("must crawl at least 1 page")
 	}
 
-	locationsToCrawl := make([]string, len(seedLocations))
-	copy(locationsToCrawl, seedLocations)
-	crawledLocations := make(map[string]bool)
+	if len(seedLocations) > crawlLimit {
+		seedLocations = seedLocations[:crawlLimit]
+	}
+
+	queued := map[string]bool{}
+	queue := make(chan string, len(seedLocations))
+	for _, loc := range seedLocations {
+		queued[loc] = true
+		queue <- loc
+	}
+
+	// start worker pool, where each worker fetches and parses a location
+	workerCount := 10
+	crawlResults := make(chan crawlResult, workerCount)
+	var crawlers sync.WaitGroup
+	for i := 0; i < workerCount; i++ {
+		crawlers.Add(1)
+		go func(workerId int) {
+			log.Println("worker", i, "started")
+			defer func() {
+				log.Println("worker", i, "ending")
+				crawlers.Done()
+			}()
+			for loc := range queue {
+				log.Println("worker", i, "crawling", loc)
+
+				// fetch it
+				content, err := wc.fetcher.Fetch(loc)
+				if err != nil {
+					log.Println(fmt.Errorf("worker %d: failed to fetch content from location %s: %w", workerId, loc, err))
+					continue
+				}
+
+				// parse it
+				locs, err := wc.parser.Parse(content, loc)
+				if err != nil {
+					log.Println(fmt.Errorf("worker %d: failed to parse content from location %s: %w", workerId, loc, err))
+					continue
+				}
+
+				log.Printf("worker %d: Crawled %s and found %d other unique links.\n", workerId, loc, len(locs))
+				crawlResults <- crawlResult{SourceLocation: loc, LinkedLocations: locs}
+			}
+		}(i)
+	}
+
+	// Separate routine that will wait for all workers to be done before finally closing the results channel,
+	// which notifies the code below that we have all results.
+	go func() {
+		crawlers.Wait()
+		log.Println("closing crawlResults channel")
+		close(crawlResults)
+	}()
+
+	// gather crawl results,
+	// keep queueing more crawls until we've reached crawl limit.
+	// TODO: what if we run out of locations to crawl before reaching crawl limit? detectable with channels?
 	locationLinks := make([][2]string, 0, 1000)
+	queueClosed := false
+outer:
+	for {
+		select {
+		case result, ok := <-crawlResults:
+			if !ok {
+				break outer
+			}
+			log.Println("top")
+			log.Println("received crawl results", result.SourceLocation, "-->", result.LinkedLocations)
+			for _, loc := range result.LinkedLocations {
+				// always record links
+				locationLinks = append(locationLinks, [2]string{result.SourceLocation, loc})
 
-	for len(locationsToCrawl) > 0 && len(crawledLocations) < crawlLimit {
-		// dequeue
-		loc := locationsToCrawl[0]
-		locationsToCrawl = locationsToCrawl[1:]
-		// skip if already crawled
-		if crawledLocations[loc] {
-			log.Printf("Skipping already-crawled location %s\n", loc)
-			continue
-		}
-		// skip if i don't want to crawl it for some reason
-		if !wc.canCrawlLocation(loc) {
-			log.Printf("Not crawling location %s\n", loc)
-			continue
-		}
+				// possibly don't crawl this location
+				if queued[loc] {
+					continue // skip location that's already been crawled or will be crawled
+				} else if !wc.canCrawlLocation(loc) {
+					continue
+				} else if len(queued) < crawlLimit {
+					// schedule to crawl this location
+					log.Println("queuing location", loc)
+					queued[loc] = true
+					queue <- loc
+					log.Println("queued length is", len(queued))
+				}
+			}
 
-		// record it as crawled
-		crawledLocations[loc] = true
-
-		// fetch it
-		content, err := wc.fetcher.Fetch(loc)
-		if err != nil {
-			log.Println(fmt.Errorf("failed to fetch content from location %s: %w", loc, err))
-			continue
-		}
-
-		// parse it
-		locs, err := wc.parser.Parse(content, loc)
-		if err != nil {
-			log.Println(fmt.Errorf("failed to parse content from location %s: %w", loc, err))
-			continue
-		}
-
-		log.Printf("Crawled %s and found %d other unique links.\n", loc, len(locs))
-
-		// queue locations to crawl and record links
-		for _, l := range locs {
-			locationLinks = append(locationLinks, [2]string{loc, l})
-			locationsToCrawl = append(locationsToCrawl, l)
+			if len(queued) == crawlLimit && !queueClosed {
+				log.Println("closing queue channel")
+				close(queue)
+				queueClosed = true
+			}
+		case <-time.After(time.Duration(3) * time.Second): // TODO better way to detect that queue is empty AND no more results to process
+			log.Println("Not received results in a while. Assuming done, exiting...")
+			break outer
 		}
 	}
 
 	return locationLinks, nil
+}
+
+type crawlResult struct {
+	SourceLocation  string
+	LinkedLocations []string
 }
 
 // Returns true if we are allowed to crawl the location.
