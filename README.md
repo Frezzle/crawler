@@ -1,6 +1,6 @@
 # Crawler
 
-Generic crawler for any kind of "web" where locations link to other locations.
+Generic crawler for any kind of "web" where locations link to other locations, or "network" where nodes link to other nodes.
 
 Includes implementation for the most common crawler, the (world wide) web crawler.
 
@@ -19,7 +19,7 @@ Divided into:
     - e.g. the WebParser parses HTML content and finds all the `<a href="...">` links.
 - Crawler; progressively crawls some seed location(s), and any location(s) it links to, and so on.
 
-## Create your own
+## Crawl any web or network
 
 You can implement the `Fetcher` and/or `Parser` interfaces and use those implementation with the `Crawler`, allowing you to crawl other kinds of webs, e.g.:
 - Crawl networks modelled in your database, where one network node links to other nodes.
